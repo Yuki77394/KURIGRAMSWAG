@@ -27,5 +27,5 @@ py-yt-search==0.5.7
 spotipy>=2.26.0
 prettytable>=3.12.0
 openai>=1.40.0
-gTTS>=2.5.1
+gTTS>=2.5.4
 static-ffmpeg>=3.0.0
