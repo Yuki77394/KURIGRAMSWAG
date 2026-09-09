@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: SWAGGYMUSIC Bot
+    env: python
+    plan: free
+    region: oregon
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: python3 -m SWAGGYMUSIC
+    autoDeploy: true
+    envVars:
+      - key: API_ID
+        value: ""
+      - key: API_HASH
+        value: ""
+      - key: BOT_TOKEN
+        value: ""
+      - key: LOGGER_ID
+        value: ""
+      - key: MONGO_DB_URI
+        value: ""
+      - key: OWNER_ID
+        value: ""
+      - key: STRING_SESSION
+        sync: false
+      - key: STRING_SESSION2
+        sync: false
+      - key: STRING_SESSION3
+        sync: false
+      - key: STRING_SESSION4
+        sync: false
+      - key: STRING_SESSION5
+        sync: false
+      - key: UPSTREAM_REPO
+        value: "https://github.com/Yuki77394/NEWSRMUSIC"
+      - key: UPSTREAM_BRANCH
+        value: "main"
+      - key: GIT_TOKEN
+        sync: false
+      - key: STORAGE_CHANNEL_ID
+        value: "0"
+      - key: MUSIC_CACHE_ENABLED
+        value: "true"
