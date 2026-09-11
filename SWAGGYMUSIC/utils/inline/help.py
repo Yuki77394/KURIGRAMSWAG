@@ -129,6 +129,7 @@ def private_help_panel(_):
                 text=_["S_B_4"],
                 url=f"https://t.me/{app.username}?start=help",
                 style=ButtonStyle.PRIMARY,
+                icon_custom_emoji_id=5260512129240276089,
             ),
         ],
     ]

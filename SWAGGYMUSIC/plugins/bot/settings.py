@@ -151,6 +151,7 @@ async def support(client, CallbackQuery, _):
                         text="⌯ ᴏᴡɴᴇʀ ⌯",
                         user_id=config.OWNER_ID,
                         style=ButtonStyle.SUCCESS,
+                        icon_custom_emoji_id=6237864166879663987,
                     )
                 ],
                 [

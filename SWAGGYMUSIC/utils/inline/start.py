@@ -21,6 +21,7 @@ def start_panel(_):
                 text=_["S_B_1"],
                 url=f"https://t.me/{app.username}?startgroup=true",
                 style=ButtonStyle.PRIMARY,
+                icon_custom_emoji_id=6100125944381444896,
             ),
             InlineKeyboardButton(
                 text=_["S_B_2"],
@@ -39,6 +40,7 @@ def private_panel(_):
                 text=_["S_B_3"],
                 url=f"https://t.me/{app.username}?startgroup=true",
                 style=ButtonStyle.PRIMARY,
+                icon_custom_emoji_id=6100125944381444896,
             )
         ],
         [
@@ -46,6 +48,7 @@ def private_panel(_):
                 text=_["S_B_4"],
                 callback_data="settings_back_helper",
                 style=ButtonStyle.PRIMARY,
+                icon_custom_emoji_id=5260512129240276089,
             ),
         ],
         [
@@ -53,11 +56,13 @@ def private_panel(_):
                 text="⌯ ᴏᴡɴᴇʀ ⌯",
                 user_id=config.OWNER_ID,
                 style=ButtonStyle.SUCCESS,
+                icon_custom_emoji_id=6237864166879663987,
             ),
             InlineKeyboardButton(
                 text="⌯ ɴᴇᴛᴡᴏʀᴋ ⌯",
                 url="https://t.me/SpIcYxNeTwOrK",
                 style=ButtonStyle.SUCCESS,
+                icon_custom_emoji_id=6039381989985882045,
             ),
         ],
     ]
