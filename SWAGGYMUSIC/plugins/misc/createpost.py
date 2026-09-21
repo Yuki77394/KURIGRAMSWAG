@@ -11,18 +11,18 @@ Sessions are kept in memory and are cleared if the bot restarts.
 """
 
 import asyncio
+import random
 import re
 from contextlib import suppress
 
-from pyrogram import filters
-from pyrogram.enums import ButtonStyle, ChatMemberStatus, ChatType, MessageEntityType
+from pyrogram import filters, raw
+from pyrogram.enums import ButtonStyle, ChatMemberStatus, ChatType
 from pyrogram.errors import RPCError
 from pyrogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
-    MessageEntity,
 )
 
 from SWAGGYMUSIC import app
@@ -178,6 +178,110 @@ def _format_two(mention: str) -> str:
     )
 
 
+
+def _entity_type_name(entity):
+    value = getattr(entity, "type", "")
+    return getattr(value, "value", value)
+
+
+def _shift_entity(entity, shift: int):
+    """
+    Convert a high-level Pyrogram/Kurigram MessageEntity into its raw
+    MTProto equivalent and shift its offset by `shift` UTF-16 code units.
+    """
+    kind = _entity_type_name(entity)
+    offset = int(entity.offset) + shift
+    length = int(entity.length)
+
+    mapping = {
+        "bold": raw.types.MessageEntityBold,
+        "italic": raw.types.MessageEntityItalic,
+        "code": raw.types.MessageEntityCode,
+        "pre": raw.types.MessageEntityPre,
+        "underline": raw.types.MessageEntityUnderline,
+        "strikethrough": raw.types.MessageEntityStrike,
+        "strike": raw.types.MessageEntityStrike,
+        "spoiler": raw.types.MessageEntitySpoiler,
+        "blockquote": raw.types.MessageEntityBlockquote,
+        "expandable_blockquote": raw.types.MessageEntityBlockquote,
+        "text_link": raw.types.MessageEntityTextUrl,
+        "url": raw.types.MessageEntityUrl,
+        "mention": raw.types.MessageEntityMention,
+        "hashtag": raw.types.MessageEntityHashtag,
+        "cashtag": raw.types.MessageEntityCashtag,
+        "email": raw.types.MessageEntityEmail,
+        "phone_number": raw.types.MessageEntityPhone,
+    }
+
+    cls = mapping.get(kind)
+
+    if cls is None:
+        return None
+
+    if kind == "text_link":
+        return cls(offset=offset, length=length, url=entity.url)
+
+    if kind == "pre":
+        return cls(
+            offset=offset,
+            length=length,
+            language=getattr(entity, "language", "") or "",
+        )
+
+    return cls(offset=offset, length=length)
+
+
+async def _send_hidden_preview(
+    chat_id: int,
+    text: str,
+    video_url: str,
+    entities,
+    show_above_text: bool,
+):
+    """
+    Send a hidden-link MP4 preview through Telegram's raw MTProto
+    messages.sendMessage API.
+
+    `invert_media=True` places the webpage/video preview above the text.
+    """
+    hidden_char = "\u200b"
+
+    # Do NOT add blank lines before the visible text. The old implementation
+    # used "\u200b\n\n", which created the unwanted empty space in the post.
+    final_text = hidden_char + text
+
+    # All original user formatting starts after the one-character hidden URL.
+    shift = 1
+    raw_entities = []
+
+    # Hidden URL entity at offset 0.
+    raw_entities.append(
+        raw.types.MessageEntityTextUrl(
+            offset=0,
+            length=1,
+            url=video_url,
+        )
+    )
+
+    for entity in entities or []:
+        converted = _shift_entity(entity, shift)
+        if converted is not None:
+            raw_entities.append(converted)
+
+    peer = await app.resolve_peer(chat_id)
+
+    return await app.invoke(
+        raw.functions.messages.SendMessage(
+            peer=peer,
+            no_webpage=False,
+            invert_media=bool(show_above_text),
+            random_id=random.randint(-(2**63), 2**63 - 1),
+            message=final_text,
+            entities=raw_entities,
+        )
+    )
+
+
 async def _bot_admin_status(chat_id: int):
     """Check that the bot can access the target chat and can post."""
     try:
@@ -314,7 +418,7 @@ async def createpost_callbacks(_, query: CallbackQuery):
         return
 
     if data.startswith(f"{PREFIX}:position:"):
-        if session.get("mode") != "hidden":
+        if session.get("post_type") != "hidden":
             return await query.answer(
                 "This option is only for Hidden Preview.",
                 show_alert=True,
@@ -341,7 +445,7 @@ async def createpost_callbacks(_, query: CallbackQuery):
 
         with suppress(Exception):
             await query.message.edit_text(
-                "<b>2/5 — Sᴇɴᴅ Pᴏsᴛ Tᴇxᴛ</b>\\n\\n"
+                "<b>2/4 — Sᴇɴᴅ Pᴏsᴛ Tᴇxᴛ</b>\n\n"
                 "Send the complete text/caption you want in the post."
             )
 
@@ -399,12 +503,13 @@ async def createpost_input(_, message: Message):
         session["chat_id"] = chat_id
 
         if session.get("post_type") == "hidden":
-            session["step"] = "hidden_text"
+            session["step"] = "position"
             return await message.reply_text(
                 "<b>✅ Bᴏᴛ Aᴅᴍɪɴ Vᴇʀɪғɪᴇᴅ.</b>\n\n"
-                "<b>1/3 — Sᴇɴᴅ Yᴏᴜʀ Pᴏsᴛ Tᴇxᴛ</b>\n\n"
-                "Yᴏᴜ ᴄᴀɴ ᴡʀɪᴛᴇ ᴛʜᴇ ᴄᴏᴍᴘʟᴇᴛᴇ ᴘᴏsᴛ ᴍᴀɴᴜᴀʟʟʏ.\n"
-                "HTML formatting supported."
+                "<b>1/4 — Cʜᴏᴏsᴇ Vɪᴅᴇᴏ Pᴏsɪᴛɪᴏɴ</b>\n\n"
+                "Choose whether the video preview should appear above "
+                "or below your text.",
+                reply_markup=_preview_position_menu(),
             )
 
         session["step"] = "format"
@@ -427,10 +532,14 @@ async def createpost_input(_, message: Message):
             )
 
         session["hidden_text"] = raw
+        # Preserve formatting applied by the user in Telegram (bold,
+        # italic, underline, links, etc.). message.text alone loses these
+        # visual entities, so save them for the final send.
+        session["hidden_entities"] = list(message.entities or [])
         session["step"] = "hidden_video"
 
         return await message.reply_text(
-            "<b>2/3 — Sᴇɴᴅ Dɪʀᴇᴄᴛ Vɪᴅᴇᴏ URL</b>\n\n"
+            "<b>3/4 — Sᴇɴᴅ Dɪʀᴇᴄᴛ Vɪᴅᴇᴏ URL</b>\n\n"
             "Send a direct <b>.mp4</b> URL.\n\n"
             "<i>Example: https://files.catbox.moe/6ourwe.mp4</i>"
         )
@@ -458,25 +567,14 @@ async def createpost_input(_, message: Message):
 
         try:
             visible_text = session["hidden_text"]
+            original_entities = session.get("hidden_entities", [])
 
-            # Zero-width space becomes the invisible clickable text.
-            # TEXT_LINK points that invisible character to the MP4 URL.
-            # Telegram can then use the URL to generate the WebPage/video preview.
-            hidden_char = "\u200b"
-            final_text = hidden_char + "\n\n" + visible_text
-
-            entity = MessageEntity(
-                type=MessageEntityType.TEXT_LINK,
-                offset=0,
-                length=1,
-                url=video_url,
-            )
-
-            await app.send_message(
+            await _send_hidden_preview(
                 chat_id=session["chat_id"],
-                text=final_text,
-                entities=[entity],
-                disable_web_page_preview=False,
+                text=visible_text,
+                video_url=video_url,
+                entities=original_entities,
+                show_above_text=(session.get("position") == "above"),
             )
 
             await message.reply_text(
