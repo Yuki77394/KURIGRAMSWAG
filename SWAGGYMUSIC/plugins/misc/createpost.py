@@ -39,6 +39,20 @@ LOCK = asyncio.Lock()
 PREFIX = "createpost"
 
 
+async def _active_session_filter(_, message: Message):
+    """Only match messages from users currently inside the /createpost wizard."""
+    return bool(
+        message.from_user
+        and message.from_user.id in SESSIONS
+    )
+
+
+ACTIVE_SESSION = filters.create(
+    _active_session_filter,
+    name="CreatePostActiveSession",
+)
+
+
 def _format_menu():
     return InlineKeyboardMarkup(
         [
@@ -302,7 +316,8 @@ async def createpost_callbacks(_, query: CallbackQuery):
 
 
 @app.on_message(
-    filters.incoming
+    ACTIVE_SESSION
+    & filters.incoming
     & ~filters.service
     & ~filters.command("createpost")
     & ~filters.command("cancel")
