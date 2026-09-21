@@ -180,8 +180,34 @@ def _format_two(mention: str) -> str:
 
 
 def _entity_type_name(entity):
+    """
+    Return a stable lowercase entity type name.
+
+    In Pyrogram/Kurigram, MessageEntity.type can be a MessageEntityType
+    value whose value is a raw MessageEntity class (for example
+    MessageEntityBold), not the string "bold". The previous implementation
+    therefore failed to recognize formatting entities and silently dropped
+    them. Handle strings, enum values and raw classes.
+    """
     value = getattr(entity, "type", "")
-    return getattr(value, "value", value)
+
+    # Some versions expose a normal string/enum value.
+    enum_value = getattr(value, "value", None)
+    if isinstance(enum_value, str):
+        return enum_value.lower()
+
+    if isinstance(value, str):
+        return value.lower()
+
+    # Pyrogram/Kurigram commonly exposes the raw MTProto class.
+    name = getattr(value, "__name__", "")
+    if name:
+        name = name.lower()
+        if name.startswith("messageentity"):
+            name = name[len("messageentity"):]
+        return name
+
+    return str(value).lower()
 
 
 def _shift_entity(entity, shift: int):
@@ -205,6 +231,7 @@ def _shift_entity(entity, shift: int):
         "blockquote": raw.types.MessageEntityBlockquote,
         "expandable_blockquote": raw.types.MessageEntityBlockquote,
         "text_link": raw.types.MessageEntityTextUrl,
+        "text_url": raw.types.MessageEntityTextUrl,
         "url": raw.types.MessageEntityUrl,
         "mention": raw.types.MessageEntityMention,
         "hashtag": raw.types.MessageEntityHashtag,
