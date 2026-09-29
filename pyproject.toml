@@ -46,7 +46,7 @@ dependencies = [
   "unidecode>=1.3.8",
   "kurigram[fast]==2.2.25",
   "ffmpeg-python>=0.2.0",
-  "py-tgcalls==2.3.3",
+  "py-tgcalls==3.0.0",
   "ntgcalls==2.2.5",
   "motor>=3.4.0",
   "psutil>=5.9.8",
