@@ -47,8 +47,9 @@ SPOTIFY_ALBUM_IMG_URL = get_thumb()
 SPOTIFY_PLAYLIST_IMG_URL = get_thumb()
 
 load_dotenv()
-YTPROXY_URL = getenv("YTPROXY_URL", 'https://tgapi.xbitcode.com') ## xBit Music Endpoint.
-YT_API_KEY = getenv("YT_API_KEY" , "xbit_KiY0HWimxyDMVxjg6R7-7UtJKyPW9kSD")
+# Vars For API End Pont.
+ARC_API_URL = getenv("ARC_API_URL", "https://api.arcmusic.fun")
+ARC_API_KEY = getenv("ARC_API_KEY", "ARC708054d55c95189b757f86")
 
 # Get this value from my.telegram.org/apps
 API_ID = int(getenv("API_ID", 0))
