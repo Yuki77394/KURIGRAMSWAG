@@ -16,7 +16,7 @@ from pyrogram.types import Message
 
 API_URL = os.environ.get(
     "SHRUTI_API_URL",
-    "https://api01.shrutibots.site",
+    "https://api.shrutibots.in",
 ).rstrip("/")
 
 API_KEY = os.environ.get(
