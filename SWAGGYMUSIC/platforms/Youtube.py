@@ -449,6 +449,63 @@ class YouTubeAPI:
         }
         return track_details, result["id"]
  
+    async def get_related_videos(self, video_id: str, limit: int = 10):
+        """Return candidate YouTube video IDs for autoplay.
+
+        The skip/autoplay handlers call this method when the queue is empty.
+        Keep this lookup separate from stream extraction so a failed related
+        lookup cannot interfere with an already queued next song.
+        """
+        current_id = _youtube_video_id(str(video_id or ""))
+        if not current_id:
+            return []
+
+        title = ""
+        try:
+            cached = _DIRECT_INFO_CACHE.get(
+                f"https://www.youtube.com/watch?v={current_id}", {}
+            )
+            title = str(cached.get("title") or "").strip()
+        except Exception:
+            title = ""
+
+        if not title:
+            try:
+                metadata = await asyncio.wait_for(
+                    _search_video_metadata(current_id), timeout=3.0
+                )
+                title = str(metadata.get("title") or "").strip()
+            except Exception:
+                title = ""
+
+        if not title:
+            return []
+
+        # Search by the current song title plus a related-music hint, then
+        # return unique IDs only (never return the currently playing video).
+        queries = (f"{title} similar songs", f"songs like {title}")
+        found = []
+        seen = {current_id}
+        for query in queries:
+            try:
+                response = await asyncio.wait_for(
+                    VideosSearch(query, limit=max(5, min(int(limit) * 2, 20))).next(),
+                    timeout=4.0,
+                )
+                results = (response or {}).get("result") or []
+                for item in results:
+                    candidate = _youtube_video_id(
+                        str(item.get("id") or item.get("link") or "")
+                    )
+                    if candidate and candidate not in seen:
+                        seen.add(candidate)
+                        found.append(candidate)
+                        if len(found) >= limit:
+                            return found
+            except Exception:
+                continue
+        return found
+
     async def formats(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
             link = self.base + link
