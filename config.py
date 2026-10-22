@@ -49,7 +49,7 @@ SPOTIFY_PLAYLIST_IMG_URL = get_thumb()
 load_dotenv()
 # Vars For API End Pont.
 ARC_API_URL = getenv("ARC_API_URL", "https://api.arcmusic.fun")
-ARC_API_KEY = getenv("ARC_API_KEY", "ARC708054d55c95189b757f86")
+ARC_API_KEY = getenv("ARC_API_KEY", "ARC4671e290cb3ff11230be62")
 
 # Get this value from my.telegram.org/apps
 API_ID = int(getenv("API_ID", 0))
